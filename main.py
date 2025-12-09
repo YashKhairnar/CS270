@@ -82,7 +82,7 @@ if __name__=='__main__':
     
     plt.tight_layout()
     plt.show() # Display the graph window
-    # plt.savefig('training_progress.png') # Optional: save the graph to a file
+    plt.savefig('training_progress.png') # Optional: save the graph to a file
 
 
 
