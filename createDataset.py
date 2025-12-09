@@ -2,11 +2,11 @@ import os
 import pandas as pd
 from torch.utils.data import Dataset
 from PIL import Image
-import numpy as np
 import matplotlib.pyplot as plt
-import torch
-# Import transforms for data manipulation
 from torchvision import transforms 
+import torch
+
+map = { 'A': 0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7, 'I':8, 'J':9, 'K':10, 'L':11}
 
 class CustomImageDataset(Dataset):
     def __init__(self, dataConfig):
@@ -26,11 +26,12 @@ class CustomImageDataset(Dataset):
             for filename in files:
                 if len(filename) == 12:
                     full_path = os.path.join(root, filename)
-                    self.imageFiles.append(full_path)
                     if filename[6]==self.malwareSample:
-                        self.labels.append(1)
-                    else:
-                        self.labels.append(0)
+                        cls = filename[0]
+                        label = map[cls]
+                        
+                        self.imageFiles.append(full_path)
+                        self.labels.append(label)
     
 
     def __len__(self):
@@ -46,7 +47,7 @@ class CustomImageDataset(Dataset):
         img_tensor = self.transform(img) 
 
         # Return the image as a Tensor, and the label as a tensor/integer (DataLoader handles label type conversion)
-        return img_tensor, label
+        return img_tensor, torch.tensor(label, dtype=torch.long)
     
     def displayImage(self, idx):
         image_path = self.imageFiles[idx]

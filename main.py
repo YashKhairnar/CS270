@@ -47,7 +47,7 @@ if __name__=='__main__':
     best_model_path = "yash_best_model.pth"  # filename to save best model
     min_delta = 0.0              # minimum change in accuracy to count as improvement
 
-    epochs = 5
+    epochs = 100
     for t in range(epochs):
         print(f"Epoch {t+1}/{epochs}")
         avg_train_loss, train_acc = train(train_dataloader, model, loss_fn, optimizer)

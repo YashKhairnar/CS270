@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class CNNModel(nn.Module):
-    def __init__(self, numClasses=2, img_size=224):
+    def __init__(self, numClasses=12):
         super(CNNModel, self).__init__()
         layers = 3
         fclayers = 128

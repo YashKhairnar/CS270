@@ -1,4 +1,3 @@
-# train.py (Revised)
 import torch
 
 def train(dataloader, model, loss_fn, optimizer):

@@ -4,3 +4,4 @@ CS271_final_data
 
 __pycache__
 
+*.pth

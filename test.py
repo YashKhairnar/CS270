@@ -1,4 +1,3 @@
-# test.py (Revised)
 import torch
 
 def test(dataloader, model, loss_fn):
