@@ -119,5 +119,5 @@ if __name__=='__main__':
     plt.grid(True)
 
     plt.tight_layout()
-    plt.savefig('training_progress.png')
+    plt.savefig('training_progress_f.png')
     plt.show()
