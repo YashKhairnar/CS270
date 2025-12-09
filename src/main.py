@@ -1,18 +1,32 @@
 import yaml
-from cnn import CNNModel
-from createDataset import CustomImageDataset
+from models.cnn import CNNModel
+from models.densenet import DenseNetModel
+
+from utils.createDataset import CustomImageDataset
 from torch.utils.data import DataLoader, random_split
+
 import torch.nn as nn
-from train import train
-from test import test
+from utils.train import train
+from utils.test import test
+
 import torch
 import matplotlib.pyplot as plt
+import argparse
+import os
+
+
 
 if __name__=='__main__':
+    #take the model type to train
+    parser = argparse.ArgumentParser(description='Malware Classification')
+    parser.add_argument('--model', type=str, default='cnn', help='which model to train ( cnn/ densenet)')
+    args = parser.parse_args()
+    
+    #open and load config file
     with open('config.yaml', 'r') as file:
         config = yaml.safe_load(file)
        
-    # load config for cnn model
+    # load config for model
     dataConfig = config['dataset']
     malwareType = dataConfig['malwareSample']
 
@@ -24,12 +38,23 @@ if __name__=='__main__':
     # Use random_split to create proper Subset objects that DataLoader accepts
     train_dataset, test_dataset = random_split(dataset, [split_index, n - split_index])
 
+
     # Pass the resulting Subset objects to the DataLoader
     train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=False)
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-    #create cnn model
-    model = CNNModel()
+
+    #create model
+    if args.model == 'cnn':
+        model = CNNModel()
+        weightspath = '../weights/cnn'
+    if args.model == 'densenet':
+        model = DenseNetModel()
+        weightspath = '../weights/densenet'
+    
+    os.makedirs(weightspath, exist_ok=True)
+        
+    
     loss_fn = nn.CrossEntropyLoss()
     learning_rate = 0.001 
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -44,7 +69,7 @@ if __name__=='__main__':
     best_acc = 0.0               # best validation/test accuracy seen so far
     patience = 3                 # how many epochs to wait with no improvement
     epochs_no_improve = 0
-    best_model_path = "yash_best_model.pth"  # filename to save best model
+    best_model_path = f"{weightspath}/best_model.pth"  # filename to save best model
     min_delta = 0.0              # minimum change in accuracy to count as improvement
 
     epochs = 100
@@ -89,7 +114,7 @@ if __name__=='__main__':
     checkpoint = torch.load(best_model_path)
     model.load_state_dict(checkpoint["model_state_dict"])
 
-    modelname = f'CNN_{malwareType}.pt'
+    modelname = f'{args.model}_{malwareType}.pt'
     torch.save(model.state_dict(), modelname)
     print(f"\nBest model weights saved to {modelname} (best acc = {checkpoint['best_acc']:.2f}%)")
 
@@ -119,5 +144,9 @@ if __name__=='__main__':
     plt.grid(True)
 
     plt.tight_layout()
-    plt.savefig('training_progress_f.png')
+    
+    os.makedirs('../plots', exist_ok=True)
+    plot_path = os.path.join('../plots', f'{args.model}_{malwareType}_training_progress.png')
+    plt.savefig(plot_path)
+    print(f"Training plot saved to {plot_path}")
     plt.show()
