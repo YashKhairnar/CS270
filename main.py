@@ -14,6 +14,7 @@ if __name__=='__main__':
        
     # load config for cnn model
     dataConfig = config['dataset']
+    malwareType = dataConfig['malwareSample']
 
     #create dataset, dataloader for that train and testing
     dataset = CustomImageDataset(dataConfig)
@@ -85,15 +86,14 @@ if __name__=='__main__':
 
     
     # ---------- Load best model before final save ----------
-    checkpoint = torch.load(best_model_path, map_location=device)
+    checkpoint = torch.load(best_model_path)
     model.load_state_dict(checkpoint["model_state_dict"])
 
-    modelname = 'CNN_yash.pt'
+    modelname = f'CNN_{malwareType}.pt'
     torch.save(model.state_dict(), modelname)
     print(f"\nBest model weights saved to {modelname} (best acc = {checkpoint['best_acc']:.2f}%)")
 
-
-     # ---------- Plot training curves ----------
+    # ---------- Plot training curves ----------
     epochs_run = len(train_losses)
 
     plt.figure(figsize=(10, 5))
