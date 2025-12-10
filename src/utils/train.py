@@ -1,6 +1,6 @@
 import torch
 
-def train(dataloader, model, loss_fn, optimizer):
+def train(dataloader, model, loss_fn, optimizer, device):
     size = len(dataloader.dataset)
     model.train()
     
@@ -8,6 +8,7 @@ def train(dataloader, model, loss_fn, optimizer):
     correct = 0 # To calculate accuracy during training
 
     for batch, (X, y) in enumerate(dataloader):
+        X, y = X.to(device), y.to(device)
         optimizer.zero_grad() 
 
         pred = model(X)

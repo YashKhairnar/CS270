@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader, random_split
 
 import torch.nn as nn
 from utils.train import train
-from utils.test import test
+from utils.test import test, maxVoting
 
 import torch
 import matplotlib.pyplot as plt
@@ -19,7 +19,8 @@ import os
 if __name__=='__main__':
     #take the model type to train
     parser = argparse.ArgumentParser(description='Malware Classification')
-    parser.add_argument('--model', type=str, default='cnn', help='which model to train ( cnn/ densenet)')
+    parser.add_argument('--model', type=str, default='cnn', help='which model to train (cnn/densenet)')
+    parser.add_argument('--malwareType', type=str, help='which malware type to train for (a/b/c/d/e/f/all)')
     args = parser.parse_args()
     
     #open and load config file
@@ -28,29 +29,35 @@ if __name__=='__main__':
        
     # load config for model
     dataConfig = config['dataset']
-    malwareType = dataConfig['malwareSample']
-
     #create dataset, dataloader for that train and testing
-    dataset = CustomImageDataset(dataConfig)
+    dataset = CustomImageDataset(dataConfig, args.malwareType)
+
     n = len(dataset)
+
     # 80:20 split
     split_index = int(n * 0.8)
     # Use random_split to create proper Subset objects that DataLoader accepts
     train_dataset, test_dataset = random_split(dataset, [split_index, n - split_index])
 
-
     # Pass the resulting Subset objects to the DataLoader
     train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=False)
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+    voting_test_dataloader = DataLoader(test_dataset, batch_size=6, shuffle=False)
 
-
-    #create model
+    #create model and setup device
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+    
     if args.model == 'cnn':
-        model = CNNModel()
+        model = CNNModel().to(device)
         weightspath = '../weights/cnn'
     if args.model == 'densenet':
-        model = DenseNetModel()
-        weightspath = '../weights/densenet'
+        if args.malwareType == 'all':
+            model = DenseNetModel(num_classes=6).to(device)
+            weightspath = '../weights/densenet_all'
+        else:
+            model = DenseNetModel(num_classes=12).to(device)
+            weightspath = '../weights/densenet'
     
     os.makedirs(weightspath, exist_ok=True)
         
@@ -75,13 +82,23 @@ if __name__=='__main__':
     epochs = 100
     for t in range(epochs):
         print(f"Epoch {t+1}/{epochs}")
-        avg_train_loss, train_acc = train(train_dataloader, model, loss_fn, optimizer)
-        avg_test_loss, test_acc = test(test_dataloader, model, loss_fn)
+        avg_train_loss, train_acc = train(train_dataloader, model, loss_fn, optimizer, device)
+        if args.malwareType == 'all':
+            avg_test_loss, test_acc = maxVoting(voting_test_dataloader, model, loss_fn, device)
+        else:
+            avg_test_loss, test_acc = test(test_dataloader, model, loss_fn, device)
 
         print(
         f"Train loss: {avg_train_loss:.4f}, Train acc: {train_acc:.2f}% | "
-        f"Test loss: {avg_test_loss:.4f}, Test acc: {test_acc:.2f}%"
         )
+        if args.malwareType == 'all':
+            print(
+            f"Voting Test loss: {avg_voting_test_loss:.4f}, Voting Test acc: {voting_test_acc:.2f}%"
+            )
+        else:
+            print(
+            f"Test loss: {avg_test_loss:.4f}, Test acc: {test_acc:.2f}%"
+            )
 
         if test_acc > best_acc + min_delta:
             best_acc = test_acc

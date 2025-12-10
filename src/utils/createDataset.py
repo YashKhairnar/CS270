@@ -6,11 +6,12 @@ import matplotlib.pyplot as plt
 from torchvision import transforms 
 import torch
 
-map = { 'A': 0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7, 'I':8, 'J':9, 'K':10, 'L':11}
+familyMap = { 'A': 0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7, 'I':8, 'J':9, 'K':10, 'L':11}
+typeMap = { 'a':0,'b': 1, 'c':2, 'd':3, 'e':4, 'f':5}
 
 class CustomImageDataset(Dataset):
-    def __init__(self, dataConfig):
-        self.malwareSample = dataConfig['malwareSample']
+    def __init__(self, dataConfig, malwareType):
+        self.malwareSample = malwareType
         self.dataFolder = dataConfig['folderPath']
         self.imageFiles = []
         self.labels = []
@@ -26,16 +27,22 @@ class CustomImageDataset(Dataset):
             for filename in files:
                 if len(filename) == 12:
                     full_path = os.path.join(root, filename)
-                    if filename[6]==self.malwareSample:
-                        cls = filename[0]
-                        label = map[cls]
-                        
+                    if self.malwareSample !='all': #for cnn and densenet part a)
+                        if filename[6]==self.malwareSample:
+                            cls = filename[0]
+                            label = familyMap[cls]
+                            self.imageFiles.append(full_path)
+                            self.labels.append(label)
+                    else: # for densenet part b) 
+                        cls = filename[6]
+                        label = typeMap[cls]
                         self.imageFiles.append(full_path)
                         self.labels.append(label)
     
 
     def __len__(self):
         return len(self.imageFiles)
+
 
     def __getitem__(self,idx):
         image_path = self.imageFiles[idx]
@@ -48,6 +55,7 @@ class CustomImageDataset(Dataset):
 
         # Return the image as a Tensor, and the label as a tensor/integer (DataLoader handles label type conversion)
         return img_tensor, torch.tensor(label, dtype=torch.long)
+    
     
     def displayImage(self, idx):
         image_path = self.imageFiles[idx]
