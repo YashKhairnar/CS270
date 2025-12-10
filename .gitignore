@@ -1,7 +1,8 @@
 CS271_final_data
 .venv
 
-
 __pycache__
 
 *.pth
+*.pth
+*.zip
