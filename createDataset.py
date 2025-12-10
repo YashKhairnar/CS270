@@ -27,7 +27,7 @@ class CustomImageDataset(Dataset):
                 if len(filename) == 12:
                     full_path = os.path.join(root, filename)
                     if filename[6]==self.malwareSample:
-                        cls = filename[0]
+                        cls = filename[0].upper()
                         label = map[cls]
                         
                         self.imageFiles.append(full_path)
