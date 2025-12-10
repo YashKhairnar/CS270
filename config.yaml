@@ -1,6 +1,6 @@
 dataset: 
     folderPath: CS271_final_data
-    malwareSample: f  # b,c,d,e,f
+    malwareSample: a  # b,c,d,e,f
 params:
     archParams: 
         imgSize: [224,224,3]
