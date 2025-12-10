@@ -1,15 +1,27 @@
 dataset: 
     folderPath: ../CS271_final_data
-    malwareSample: f  # b,c,d,e,f
+    malwareSample: f  # a,b,c,d,e,f
+
 params:
-    archParams: 
-        imgSize: [224,224,3]
-        layers: [2,3,4,5]
-        fclayers: [128, 256, 512]
-        kernelSize: 3
-    trainingParams:
-        lr: [1e-3, 1e-4]
-        optimizer: Adam
-        dropoutRate: [0.3,0.4,0.5]
-        batchSize: 32
+    learning_rates:
+            - 0.01
+            - 0.001
+
+    optimizers:
+            - adam
+
+    batch_sizes:
+            - 32
+            - 64
+
+    dropout_rates:
+            - 0.0
+            - 0.5
+
+    weight_decays:
+            - 0.0
+            - 0.005
+
+
+# 16 total param combinations
 

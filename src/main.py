@@ -1,48 +1,75 @@
 import yaml
+import itertools
 from models.cnn import CNNModel
 from models.densenet import DenseNetModel
 
-from utils.createDataset import CustomImageDataset
+from utils.createDataset import CustomImageDataset, VotingDataset
 from torch.utils.data import DataLoader, random_split
 
 import torch.nn as nn
 from utils.train import train
 from utils.test import test, maxVoting
+from utils.plotResults import plotResults
 
 import torch
 import matplotlib.pyplot as plt
 import argparse
 import os
-
-
+from utils.gridSearch import gridSearch
 
 if __name__=='__main__':
-    #take the model type to train
-    parser = argparse.ArgumentParser(description='Malware Classification')
+    # Take the model type to train
+    parser = argparse.ArgumentParser(description='Malware Classification - Grid Search')
     parser.add_argument('--model', type=str, default='cnn', help='which model to train (cnn/densenet)')
-    parser.add_argument('--malwareType', type=str, help='which malware type to train for (a/b/c/d/e/f/all)')
+    parser.add_argument('--malwareType', type=str, default='f', help='which malware type to train for (a/b/c/d/e/f/all)')
     args = parser.parse_args()
     
-    #open and load config file
+    # Open and load config file
     with open('config.yaml', 'r') as file:
         config = yaml.safe_load(file)
        
     # load config for model
     dataConfig = config['dataset']
+
+    params = config['params']
+    param_grid = {
+        "lr": params["learning_rates"],
+        "optimizer": params["optimizers"],
+        "batch_size": params["batch_sizes"],
+        "dropout": params["dropout_rates"],
+        "weight_decay": params["weight_decays"],
+    }
+
+    # Run grid search
+    best_acc, best_params, results = gridSearch(param_grid, dataConfig, args.model, args.malwareType)
+    print(f"\n✅ Grid Search Finished!")
+
+    #extract the best parameters
+    best_lr = best_params['lr']
+    best_optimizer = best_params['optimizer']
+    best_batch_size = best_params['batch_size']
+    best_dropout = best_params['dropout']
+    best_weight_decay = best_params['weight_decay']
+    
     #create dataset, dataloader for that train and testing
     dataset = CustomImageDataset(dataConfig, args.malwareType)
-
     n = len(dataset)
-
-    # 80:20 split
-    split_index = int(n * 0.8)
-    # Use random_split to create proper Subset objects that DataLoader accepts
+    split_index = int(n * 0.8)  # 80:20 split
     train_dataset, test_dataset = random_split(dataset, [split_index, n - split_index])
 
-    # Pass the resulting Subset objects to the DataLoader
-    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=False)
-    test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-    voting_test_dataloader = DataLoader(test_dataset, batch_size=6, shuffle=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=best_batch_size, shuffle=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=best_batch_size, shuffle=False)
+    
+    # For voting: create a separate test dataset that groups images by sample
+    if args.malwareType == 'all':
+        voting_test_dataset = VotingDataset(dataConfig)
+
+        n_voting = len(voting_test_dataset)
+        voting_split = int(n_voting * 0.8)
+        _, voting_test_subset = random_split(voting_test_dataset, [voting_split, n_voting - voting_split])
+
+        voting_test_dataloader = DataLoader(voting_test_subset, batch_size=best_batch_size, shuffle=False)
+
 
     #create model and setup device
     device = torch.device("mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu")
@@ -51,9 +78,10 @@ if __name__=='__main__':
     if args.model == 'cnn':
         model = CNNModel().to(device)
         weightspath = '../weights/cnn'
+
     if args.model == 'densenet':
         if args.malwareType == 'all':
-            model = DenseNetModel(num_classes=6).to(device)
+            model = DenseNetModel(num_classes=12).to(device)  # 12 malware families (A-L)
             weightspath = '../weights/densenet_all'
         else:
             model = DenseNetModel(num_classes=12).to(device)
@@ -61,10 +89,10 @@ if __name__=='__main__':
     
     os.makedirs(weightspath, exist_ok=True)
         
-    
     loss_fn = nn.CrossEntropyLoss()
-    learning_rate = 0.001 
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+    optimizer = torch.optim.Adam(model.parameters(), lr=best_lr, weight_decay=best_weight_decay) # only adam for now
+
 
     # Lists to store history for plotting
     train_losses = []
@@ -74,9 +102,9 @@ if __name__=='__main__':
 
     # for early stopping
     best_acc = 0.0               # best validation/test accuracy seen so far
-    patience = 3                 # how many epochs to wait with no improvement
+    patience = 5                 # how many epochs to wait with no improvement
     epochs_no_improve = 0
-    best_model_path = f"{weightspath}/best_model.pth"  # filename to save best model
+    best_model_path = f"{weightspath}/{args.model}_{args.malwareType}.pth"  # filename to save best model
     min_delta = 0.0              # minimum change in accuracy to count as improvement
 
     epochs = 100
@@ -90,20 +118,12 @@ if __name__=='__main__':
 
         print(
         f"Train loss: {avg_train_loss:.4f}, Train acc: {train_acc:.2f}% | "
+        f"Test loss: {avg_test_loss:.4f}, Test acc: {test_acc:.2f}%"
         )
-        if args.malwareType == 'all':
-            print(
-            f"Voting Test loss: {avg_voting_test_loss:.4f}, Voting Test acc: {voting_test_acc:.2f}%"
-            )
-        else:
-            print(
-            f"Test loss: {avg_test_loss:.4f}, Test acc: {test_acc:.2f}%"
-            )
 
         if test_acc > best_acc + min_delta:
             best_acc = test_acc
             epochs_no_improve = 0
-
             torch.save({
                 "epoch": t,
                 "model_state_dict": model.state_dict(),
@@ -126,44 +146,6 @@ if __name__=='__main__':
         test_losses.append(avg_test_loss)
         test_accuracies.append(test_acc)
 
-    
-    # ---------- Load best model before final save ----------
-    checkpoint = torch.load(best_model_path)
-    model.load_state_dict(checkpoint["model_state_dict"])
 
-    modelname = f'{args.model}_{malwareType}.pt'
-    torch.save(model.state_dict(), modelname)
-    print(f"\nBest model weights saved to {modelname} (best acc = {checkpoint['best_acc']:.2f}%)")
-
-    # ---------- Plot training curves ----------
-    epochs_run = len(train_losses)
-
-    plt.figure(figsize=(10, 5))
-
-    # Loss
-    plt.subplot(1, 2, 1)
-    plt.plot(range(1, epochs_run + 1), train_losses, label='Training Loss')
-    plt.plot(range(1, epochs_run + 1), test_losses, label='Testing Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Loss over Epochs')
-    plt.legend()
-    plt.grid(True)
-
-    # Accuracy
-    plt.subplot(1, 2, 2)
-    plt.plot(range(1, epochs_run + 1), train_accuracies, label='Training Accuracy')
-    plt.plot(range(1, epochs_run + 1), test_accuracies, label='Testing Accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy (%)')
-    plt.title('Accuracy over Epochs')
-    plt.legend()
-    plt.grid(True)
-
-    plt.tight_layout()
-    
-    os.makedirs('../plots', exist_ok=True)
-    plot_path = os.path.join('../plots', f'{args.model}_{malwareType}_training_progress.png')
-    plt.savefig(plot_path)
-    print(f"Training plot saved to {plot_path}")
-    plt.show()
+    #----------- plot and save the results -----------
+    plotResults(train_losses, test_losses, train_accuracies, test_accuracies, args.model, args.malwareType)
