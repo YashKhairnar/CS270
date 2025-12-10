@@ -1,0 +1,12 @@
+{
+    "best_hyperparameters": {
+        "C": 1,
+        "gamma": 0.01,
+        "kernel": "rbf"
+    },
+    "train_accuracy": 0.981712962962963,
+    "test_accuracy": 0.9736111111111111,
+    "feature_dim": 72,
+    "num_train_samples": 8640,
+    "num_test_samples": 2160
+}
