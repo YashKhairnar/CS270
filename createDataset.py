@@ -28,10 +28,11 @@ class CustomImageDataset(Dataset):
                     full_path = os.path.join(root, filename)
                     if filename[6]==self.malwareSample:
                         cls = filename[0].upper()
-                        label = map[cls]
-                        
-                        self.imageFiles.append(full_path)
-                        self.labels.append(label)
+                        if cls in map:
+                            label = map[cls]
+
+                            self.imageFiles.append(full_path)
+                            self.labels.append(label)
     
 
     def __len__(self):
