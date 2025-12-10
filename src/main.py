@@ -57,8 +57,8 @@ if __name__=='__main__':
     split_index = int(n * 0.8)  # 80:20 split
     train_dataset, test_dataset = random_split(dataset, [split_index, n - split_index])
 
-    train_dataloader = DataLoader(train_dataset, batch_size=best_batch_size, shuffle=False)
-    test_dataloader = DataLoader(test_dataset, batch_size=best_batch_size, shuffle=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=best_batch_size, shuffle=True)
+    test_dataloader = DataLoader(test_dataset, batch_size=best_batch_size, shuffle=True)
     
     # For voting: create a separate test dataset that groups images by sample
     if args.malwareType == 'all':
