@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from models.cnn import CNNModel
 from models.densenet import DenseNetModel
+from utils.cachedDataset import CachedImageDataset
 from utils.createDataset import CustomImageDataset
 from torch.utils.data import DataLoader, random_split
 from utils.train import train
@@ -38,6 +39,7 @@ def gridSearch(param_grid, dataConfig, model_type='cnn', malware_type='f'):
     print(f"Using device: {device}\n")
     
     # Create dataset once
+    # dataset = CachedImageDataset(dataConfig, malware_type)
     dataset = CustomImageDataset(dataConfig, malware_type)
     n = len(dataset)
     split_index = int(n * 0.8)

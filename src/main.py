@@ -3,7 +3,8 @@ import itertools
 from models.cnn import CNNModel
 from models.densenet import DenseNetModel
 
-from utils.createDataset import CustomImageDataset, VotingDataset
+from utils.cachedDataset import CachedImageDataset
+from utils.createDataset import VotingDataset, CustomImageDataset
 from torch.utils.data import DataLoader, random_split
 
 import torch.nn as nn
@@ -52,6 +53,7 @@ if __name__=='__main__':
     best_weight_decay = best_params['weight_decay']
     
     #create dataset, dataloader for that train and testing
+    # dataset = CachedImageDataset(dataConfig, args.malwareType)
     dataset = CustomImageDataset(dataConfig, args.malwareType)
     n = len(dataset)
     split_index = int(n * 0.8)  # 80:20 split
