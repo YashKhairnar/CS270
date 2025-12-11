@@ -1,26 +1,26 @@
 dataset: 
-    folderPath: ../CS271_final_data
-    malwareSample: f  # a,b,c,d,e,f
+  folderPath: ../CS271_final_data
+  malwareSample: f  # a,b,c,d,e,f
 
 params:
-    learning_rates:
-            - 0.01
-            - 0.001
+  learning_rates:
+     - 0.01
+     - 0.001
 
-    optimizers:
-            - adam
+  optimizers:
+    - adam
 
-    batch_sizes:
-            - 32
-            - 64
+  batch_sizes:
+    - 32
+    - 64
 
-    dropout_rates:
-            - 0.0
-            - 0.5
+  dropout_rates:
+    - 0.0
+    - 0.5
 
-    weight_decays:
-            - 0.0
-            - 0.005
+  weight_decays:
+    - 0.0
+    - 0.005
 
 
 # 16 total param combinations
