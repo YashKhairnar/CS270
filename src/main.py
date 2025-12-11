@@ -88,6 +88,7 @@ if __name__=='__main__':
         else:
             model = DenseNetModel(num_classes=12).to(device)
             weightspath = '../weights/densenet'
+
     
     os.makedirs(weightspath, exist_ok=True)
         
